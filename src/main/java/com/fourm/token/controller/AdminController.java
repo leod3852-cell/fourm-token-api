@@ -1,0 +1,100 @@
+package com.fourm.token.controller;
+
+import com.fourm.token.dto.TokenRegisterRequest;
+import com.fourm.token.entity.*;
+import com.fourm.token.repository.DoctorRepository;
+import com.fourm.token.repository.PatientRepository;
+import com.fourm.token.service.TokenService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import com.fourm.token.service.PermissionService;
+import org.springframework.security.core.Authentication;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/admin")
+public class AdminController {
+    @Autowired
+    private PermissionService permissionService;
+
+    @Autowired
+    private TokenService tokenService;
+
+    @Autowired
+    private DoctorRepository doctorRepository;
+
+    @Autowired
+    private PatientRepository patientRepository;
+
+    // Register new patient + generate token
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/tokens")
+    public ResponseEntity<?> registerToken(@RequestBody TokenRegisterRequest request) {
+        Doctor doctor = doctorRepository.findById(request.getDoctorId())
+                .orElseThrow(() -> new RuntimeException("Doctor not found"));
+
+        Patient patient = new Patient();
+        patient.setName(request.getName());
+        patient.setAge(request.getAge());
+        patient.setGender(request.getGender());
+        patient.setPhone(request.getPhone());
+        patient.setBp(request.getBp());
+        patient.setWeight(request.getWeight());
+        patient.setReasonForVisit(request.getReasonForVisit());
+        patient.setIsEmergency(request.getIsEmergency() != null && request.getIsEmergency());
+        patient.setEmail(request.getEmail());
+        patient = patientRepository.save(patient);
+
+        Token token = tokenService.registerToken(patient, doctor);
+        return ResponseEntity.ok(token);
+    }
+
+    // ADMIN ONLY - call next patient for a doctor
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
+    @PostMapping("/doctors/{doctorId}/call-next")
+    public ResponseEntity<?> callNext(@PathVariable Long doctorId, Authentication authentication) {
+        permissionService.checkPermission("CALL_NEXT", authentication);
+        Token token = tokenService.callNextPatient(doctorId);
+        return ResponseEntity.ok(token);
+    }
+
+    // list of all doctors
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/doctors")
+    public ResponseEntity<?> getDoctors() {
+        return ResponseEntity.ok(doctorRepository.findAll());
+    }
+
+    // all tokens - live queue view
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/tokens")
+    public ResponseEntity<?> getAllTokens() {
+        return ResponseEntity.ok(tokenService.getAllTokens());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/patients/lookup")
+    public ResponseEntity<Map<String, Object>> lookupPatient(@RequestParam String phone) {
+        List<Patient> previousVisits = patientRepository.findByPhoneOrderByIdDesc(phone);
+
+        Map<String, Object> response = new HashMap<>();
+
+        if (previousVisits.isEmpty()) {
+            response.put("found", false);
+        } else {
+            Patient latest = previousVisits.get(0);
+            response.put("found", true);
+            response.put("name", latest.getName());
+            response.put("age", latest.getAge());
+            response.put("gender", latest.getGender());
+            response.put("email", latest.getEmail());
+            response.put("visitCount", previousVisits.size());
+        }
+
+        return ResponseEntity.ok(response);
+    }
+}
