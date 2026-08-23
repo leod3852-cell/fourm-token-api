@@ -20,4 +20,5 @@ public class Patient {
     private String reasonForVisit;
     private Boolean isEmergency = false;
     private String email;
+    private Long organizationId;
 }

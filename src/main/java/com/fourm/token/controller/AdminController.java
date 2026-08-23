@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.stream.Collectors;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -37,7 +37,9 @@ public class AdminController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/tokens")
-    public ResponseEntity<?> registerToken(@RequestBody TokenRegisterRequest request) {
+    public ResponseEntity<?> registerToken(@RequestBody TokenRegisterRequest request, HttpServletRequest httpRequest) {
+        Long organizationId = (Long) httpRequest.getAttribute("organizationId");
+
         Doctor doctor = doctorRepository.findById(request.getDoctorId())
                 .orElseThrow(() -> new RuntimeException("Doctor not found"));
 
@@ -51,6 +53,7 @@ public class AdminController {
         patient.setReasonForVisit(request.getReasonForVisit());
         patient.setIsEmergency(request.getIsEmergency() != null && request.getIsEmergency());
         patient.setEmail(request.getEmail());
+        patient.setOrganizationId(organizationId);
         patient = patientRepository.save(patient);
 
         Token token = tokenService.registerToken(patient, doctor);
@@ -80,8 +83,11 @@ public class AdminController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/patients/lookup")
-    public ResponseEntity<Map<String, Object>> lookupPatient(@RequestParam String phone) {
-        List<Patient> previousVisits = patientRepository.findByPhoneOrderByIdDesc(phone);
+    public ResponseEntity<Map<String, Object>> lookupPatient(@RequestParam String phone, HttpServletRequest httpRequest) {
+        Long organizationId = (Long) httpRequest.getAttribute("organizationId");
+        List<Patient> previousVisits = patientRepository.findByPhoneOrderByIdDesc(phone).stream()
+                .filter(p -> organizationId.equals(p.getOrganizationId()))
+                .collect(Collectors.toList());
 
         Map<String, Object> response = new HashMap<>();
 
