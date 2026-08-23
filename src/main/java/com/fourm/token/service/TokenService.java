@@ -26,7 +26,7 @@ public class TokenService {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
 
-        long todayCount = tokenRepository.countByCreatedAtBetween(startOfDay, endOfDay);
+        long todayCount = tokenRepository.countByDoctorIdAndCreatedAtBetween(doctor.getId(), startOfDay, endOfDay);
         int nextTokenNumber = (int) todayCount + 1;
 
         Token token = new Token();
@@ -83,6 +83,18 @@ public class TokenService {
         return saved;
     }
 
+    public Token cancelToken(Long tokenId) {
+        Token token = tokenRepository.findById(tokenId)
+                .orElseThrow(() -> new NoSuchElementException("Token not found"));
+
+        if (token.getStatus() != TokenStatus.WAITING) {
+            throw new IllegalStateException("Only waiting tokens can be cancelled");
+        }
+
+        token.setStatus(TokenStatus.CANCELLED);
+
+        return tokenRepository.save(token);
+    }
     // get all waiting tokens for a doctor
     public List<Token> getWaitingQueue(Long doctorId) {
         return tokenRepository.findByDoctorIdAndStatus(doctorId, TokenStatus.WAITING);
@@ -124,5 +136,9 @@ public class TokenService {
     // get held tokens for a doctor
     public List<Token> getHeldTokens(Long doctorId) {
         return tokenRepository.findByDoctorIdAndStatus(doctorId, TokenStatus.ON_HOLD);
+    }
+    // Get all visits/tokens for a patient by phone number
+    public List<Token> getPatientHistory(String phone) {
+        return tokenRepository.findByPatient_PhoneOrderByCreatedAtDesc(phone);
     }
 }

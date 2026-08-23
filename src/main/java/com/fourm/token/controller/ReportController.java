@@ -8,6 +8,7 @@ import com.fourm.token.repository.DoctorRepository;
 import com.fourm.token.repository.TokenRepository;
 import com.fourm.token.repository.UserRepository;
 import com.fourm.token.service.TokenService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,39 +39,41 @@ public class ReportController {
     @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
     @GetMapping
     public ResponseEntity<Map<String, Object>> getReports(
+            HttpServletRequest httpRequest,
             Authentication authentication,
             @RequestParam(required = false) String startDate,
             @RequestParam(required = false) String endDate) {
+
+        Long organizationId = (Long) httpRequest.getAttribute("organizationId");
 
         List<Token> allTokens;
 
         if (startDate != null && endDate != null) {
             LocalDateTime start = LocalDate.parse(startDate).atStartOfDay();
             LocalDateTime end = LocalDate.parse(endDate).atTime(23, 59, 59);
-            allTokens = tokenRepository.findByCreatedAtBetween(start, end);
+            allTokens = tokenRepository.findByDoctorOrganizationIdAndCreatedAtBetween(organizationId, start, end);
         } else {
-            allTokens = tokenService.getAllTokens();
+            allTokens = tokenRepository.findByDoctorOrganizationIdAndCreatedAtBetween(
+                    organizationId, LocalDate.of(2020, 1, 1).atStartOfDay(), LocalDateTime.now());
         }
 
         boolean isDoctor = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_DOCTOR"));
 
-        List<Doctor> doctors;
+        List<Doctor> doctors = doctorRepository.findByOrganizationId(organizationId);
 
         if (isDoctor) {
             String username = authentication.getName();
             User user = userRepository.findByUsername(username).orElseThrow();
             Long myDoctorId = user.getDoctorId();
 
-            doctors = doctorRepository.findAll().stream()
+            doctors = doctors.stream()
                     .filter(d -> d.getId().equals(myDoctorId))
                     .collect(Collectors.toList());
 
             allTokens = allTokens.stream()
                     .filter(t -> t.getDoctor().getId().equals(myDoctorId))
                     .collect(Collectors.toList());
-        } else {
-            doctors = doctorRepository.findAll();
         }
 
         long total = allTokens.size();

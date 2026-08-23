@@ -5,13 +5,12 @@ import lombok.Data;
 
 @Entity
 @Data
-public class Doctor {
+public class Organization {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
     private String name;
-    private String specialization;
-    private Long organizationId;
 }

@@ -10,4 +10,5 @@ public class LoginResponse {
     private String role;
     private String username;
     private Long doctorId;
+    private Long organizationId;
 }

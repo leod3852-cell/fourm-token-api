@@ -4,13 +4,17 @@ import com.fourm.token.dto.TokenRegisterRequest;
 import com.fourm.token.entity.*;
 import com.fourm.token.repository.DoctorRepository;
 import com.fourm.token.repository.PatientRepository;
+import com.fourm.token.service.PermissionService;
 import com.fourm.token.service.TokenService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-import com.fourm.token.service.PermissionService;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,8 +22,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
-    @Autowired
-    private PermissionService permissionService;
 
     @Autowired
     private TokenService tokenService;
@@ -30,7 +32,9 @@ public class AdminController {
     @Autowired
     private PatientRepository patientRepository;
 
-    // Register new patient + generate token
+    @Autowired
+    private PermissionService permissionService;
+
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/tokens")
     public ResponseEntity<?> registerToken(@RequestBody TokenRegisterRequest request) {
@@ -53,7 +57,6 @@ public class AdminController {
         return ResponseEntity.ok(token);
     }
 
-    // ADMIN ONLY - call next patient for a doctor
     @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
     @PostMapping("/doctors/{doctorId}/call-next")
     public ResponseEntity<?> callNext(@PathVariable Long doctorId, Authentication authentication) {
@@ -62,14 +65,13 @@ public class AdminController {
         return ResponseEntity.ok(token);
     }
 
-    // list of all doctors
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/doctors")
-    public ResponseEntity<?> getDoctors() {
-        return ResponseEntity.ok(doctorRepository.findAll());
+    public ResponseEntity<?> getDoctors(HttpServletRequest request) {
+        Long organizationId = (Long) request.getAttribute("organizationId");
+        return ResponseEntity.ok(doctorRepository.findByOrganizationId(organizationId));
     }
 
-    // all tokens - live queue view
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/tokens")
     public ResponseEntity<?> getAllTokens() {
@@ -96,5 +98,10 @@ public class AdminController {
         }
 
         return ResponseEntity.ok(response);
+    }
+    @PreAuthorize("hasAnyRole('ADMIN','DOCTOR')")
+    @GetMapping("/patients/history")
+    public ResponseEntity<?> getPatientHistory(@RequestParam String phone) {
+        return ResponseEntity.ok(tokenService.getPatientHistory(phone));
     }
 }
