@@ -110,4 +110,13 @@ public class AdminController {
     public ResponseEntity<?> getPatientHistory(@RequestParam String phone) {
         return ResponseEntity.ok(tokenService.getPatientHistory(phone));
     }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/doctors/{doctorId}/availability")
+    public ResponseEntity<?> toggleAvailability(@PathVariable Long doctorId, @RequestBody Map<String, Boolean> body) {
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new RuntimeException("Doctor not found"));
+        doctor.setIsAvailable(body.get("isAvailable"));
+        doctorRepository.save(doctor);
+        return ResponseEntity.ok(doctor);
+    }
 }

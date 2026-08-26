@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface PatientRepository extends JpaRepository<Patient, Long> {
     List<Patient> findByPhoneOrderByIdDesc(String phone);
+    List<Patient> findByPhoneAndOrganizationId(String phone, Long organizationId);
 }

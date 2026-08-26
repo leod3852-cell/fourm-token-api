@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.time.LocalDate;
+import java.util.List;
 
 @Service
 public class TokenService {
@@ -140,5 +141,27 @@ public class TokenService {
     // Get all visits/tokens for a patient by phone number
     public List<Token> getPatientHistory(String phone) {
         return tokenRepository.findByPatient_PhoneOrderByCreatedAtDesc(phone);
+    }
+    // PUBLIC BOOKING - thread-safe, with all validation rules
+    public synchronized Token bookTokenPublicly(Patient patient, Doctor doctor) {
+
+        // Rule 4: doctor must be available
+        if (doctor.getIsAvailable() != null && !doctor.getIsAvailable()) {
+            throw new IllegalStateException("This doctor is currently unavailable for booking. Please choose another doctor or try later.");
+        }
+
+        // Rule 1: prevent duplicate active token for same phone number (same organization)
+        List<TokenStatus> activeStatuses = List.of(TokenStatus.WAITING, TokenStatus.CURRENT, TokenStatus.ON_HOLD);
+        List<Token> existingActive = tokenRepository.findByPatientPhoneAndDoctorOrganizationIdAndStatusIn(
+                patient.getPhone(), doctor.getOrganizationId(), activeStatuses);
+
+        if (!existingActive.isEmpty()) {
+            throw new IllegalStateException("You already have an active token (" +
+                    existingActive.get(0).getTokenNo() + "). Please complete that visit before booking again.");
+        }
+
+        // Rule 2: synchronized block ensures no two patients get the same token number
+        // even if they book at the exact same millisecond
+        return registerToken(patient, doctor);
     }
 }

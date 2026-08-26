@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueueCare — Book a Token</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+          --teal-900:#0F5257; --teal-700:#146B71; --mint-100:#E8F4F1; --paper:#FAFAF8;
+          --amber:#E8A33D; --slate-900:#22303A; --slate-500:#5C6B73; --danger:#C1462F;
+          --success:#4A7C59; --line:#DCE6E4;
+        }
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Inter',sans-serif;background:var(--paper);min-height:100vh;display:flex;justify-content:center;padding:24px 12px;}
+        .card{width:420px;max-width:100%;}
+        .header{background:linear-gradient(135deg,var(--teal-900),var(--teal-700));border-radius:20px;padding:30px 24px;color:#fff;margin-bottom:20px;}
+        .header .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.75;font-weight:600;}
+        .header h1{font-family:'Space Grotesk',sans-serif;font-size:24px;margin-top:6px;}
+        .header p{font-size:13px;opacity:.85;margin-top:6px;}
+        .field{margin-bottom:14px;}
+        .field label{font-size:12.5px;font-weight:600;color:var(--slate-500);display:block;margin-bottom:6px;}
+        .field input, .field select, .field textarea{
+          width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);
+          font-size:14.5px;font-family:'Inter',sans-serif;color:var(--slate-900);background:#fff;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--teal-700);}
+        .row{display:flex;gap:10px;}
+        .row .field{flex:1;}
+        .btn{width:100%;padding:15px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;background:var(--teal-900);color:#fff;margin-top:6px;}
+        .btn:disabled{opacity:.5;cursor:not-allowed;}
+        .msg{padding:12px 14px;border-radius:12px;font-size:13px;margin-bottom:14px;display:none;}
+        .msg.error{background:#FDECEA;color:var(--danger);display:block;}
+        .msg.success{background:var(--mint-100);color:var(--teal-900);display:block;}
+        .result{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;text-align:center;display:none;}
+        .result .token-box{background:linear-gradient(135deg,var(--teal-900),#0B3A3E);border-radius:16px;padding:24px;color:#fff;margin-bottom:16px;}
+        .result .token-box .label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.75;}
+        .result .token-box .num{font-size:44px;font-weight:700;margin:8px 0;}
+        .doctor-unavail{font-size:11px;color:var(--danger);margin-top:4px;}
+        .loading{text-align:center;padding:20px;color:var(--slate-500);font-size:13px;}
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <div class="eyebrow">QueueCare</div>
+        <h1>Book Your Token</h1>
+        <p>Skip the line — reserve your spot before you arrive.</p>
+    </div>
+
+    <div id="msgBox" class="msg"></div>
+
+    <div id="formSection">
+        <div class="field">
+            <label>Full Name</label>
+            <input id="pName" placeholder="e.g. Karthik Raja" />
+        </div>
+        <div class="row">
+            <div class="field">
+                <label>Age</label>
+                <input id="pAge" type="number" placeholder="e.g. 34" />
+            </div>
+            <div class="field">
+                <label>Gender</label>
+                <select id="pGender">
+                    <option>Male</option><option>Female</option><option>Other</option>
+                </select>
+            </div>
+        </div>
+        <div class="field">
+            <label>Phone Number</label>
+            <input id="pPhone" placeholder="10-digit mobile number" maxlength="10" />
+        </div>
+        <div class="field">
+            <label>Email (optional, for follow-up reminders)</label>
+            <input id="pEmail" type="email" placeholder="you@example.com" />
+        </div>
+        <div class="field">
+            <label>Select Doctor</label>
+            <select id="pDoctor"><option>Loading doctors...</option></select>
+            <div id="doctorNote" class="doctor-unavail"></div>
+        </div>
+        <div class="field">
+            <label>Reason for Visit</label>
+            <textarea id="pReason" rows="2" placeholder="e.g. Fever, follow-up"></textarea>
+        </div>
+        <button class="btn" id="bookBtn" onclick="bookToken()">Book Token</button>
+    </div>
+
+    <div id="resultSection" class="result">
+        <div class="token-box">
+            <div class="label">Your Token Number</div>
+            <div class="num" id="resultTokenNo">--</div>
+        </div>
+        <p style="font-size:14px;color:var(--slate-900);"><strong id="resultPatient"></strong></p>
+        <p style="font-size:13px;color:var(--slate-500);margin-top:4px;" id="resultDoctor"></p>
+        <button class="btn" style="margin-top:20px;background:var(--mint-100);color:var(--teal-900);" onclick="location.reload()">Book Another Token</button>
+    </div>
+</div>
+
+<script>
+    // CHANGE THIS to your organization's ID
+    const ORGANIZATION_ID = 1;
+    const BASE_URL = window.location.origin;
+
+    let doctors = [];
+
+    async function loadDoctors() {
+      try {
+        const res = await fetch(`${BASE_URL}/api/public/doctors?organizationId=${ORGANIZATION_ID}`);
+        doctors = await res.json();
+        const select = document.getElementById('pDoctor');
+        select.innerHTML = doctors.map(d =>
+          `<option value="${d.id}" ${d.isAvailable === false ? 'data-unavail="true"' : ''}>
+            ${d.name} (${d.specialization})${d.isAvailable === false ? ' — Unavailable' : ''}
+          </option>`
+        ).join('');
+        checkDoctorAvailability();
+      } catch (e) {
+        document.getElementById('pDoctor').innerHTML = '<option>Failed to load doctors</option>';
+      }
+    }
+
+    function checkDoctorAvailability() {
+      const select = document.getElementById('pDoctor');
+      const selected = doctors.find(d => d.id == select.value);
+      const note = document.getElementById('doctorNote');
+      const btn = document.getElementById('bookBtn');
+      if (selected && selected.isAvailable === false) {
+        note.textContent = "This doctor is currently unavailable. Please choose another doctor.";
+        btn.disabled = true;
+      } else {
+        note.textContent = "";
+        btn.disabled = false;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDoctors();
+      document.getElementById('pDoctor').addEventListener('change', checkDoctorAvailability);
+    });
+
+    function showMsg(text, type) {
+      const box = document.getElementById('msgBox');
+      box.textContent = text;
+      box.className = `msg ${type}`;
+    }
+
+    async function bookToken() {
+      const name = document.getElementById('pName').value.trim();
+      const age = document.getElementById('pAge').value.trim();
+      const gender = document.getElementById('pGender').value;
+      const phone = document.getElementById('pPhone').value.trim();
+      const email = document.getElementById('pEmail').value.trim();
+      const doctorId = document.getElementById('pDoctor').value;
+      const reason = document.getElementById('pReason').value.trim();
+
+      if (!name || !age || !phone || phone.length !== 10 || !doctorId) {
+        showMsg("Please fill Name, Age, 10-digit Phone, and select a Doctor.", "error");
+        return;
+      }
+
+      const btn = document.getElementById('bookBtn');
+      btn.disabled = true;
+      btn.textContent = "Booking...";
+
+      try {
+        const res = await fetch(`${BASE_URL}/api/public/book`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            name, age: parseInt(age), gender, phone, email,
+            reasonForVisit: reason, doctorId: parseInt(doctorId),
+            organizationId: ORGANIZATION_ID
+          })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMsg(data.error || "Booking failed. Please try again.", "error");
+          btn.disabled = false;
+          btn.textContent = "Book Token";
+          return;
+        }
+
+        document.getElementById('formSection').style.display = 'none';
+        document.getElementById('msgBox').style.display = 'none';
+        document.getElementById('resultSection').style.display = 'block';
+        document.getElementById('resultTokenNo').textContent = data.tokenNo;
+        document.getElementById('resultPatient').textContent = name;
+        document.getElementById('resultDoctor').textContent = `Doctor: ${data.doctorName}`;
+      } catch (e) {
+        showMsg("Network error. Please check your connection and try again.", "error");
+        btn.disabled = false;
+        btn.textContent = "Book Token";
+      }
+    }
+</script>
+</body>
+</html>

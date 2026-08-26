@@ -14,4 +14,6 @@ public class Doctor {
     private String name;
     private String specialization;
     private Long organizationId;
+    private Double consultationFee;
+    private Boolean isAvailable = true;
 }
