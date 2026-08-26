@@ -10,7 +10,7 @@ import com.fourm.token.service.TokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.fourm.token.repository.OrganizationRepository;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,5 +66,15 @@ public class PublicBookingController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Booking failed: " + e.getMessage()));
         }
+    }
+    @Autowired
+    private OrganizationRepository organizationRepository;
+
+    // get organization name - public, no login
+    @GetMapping("/organization")
+    public ResponseEntity<?> getOrganization(@RequestParam Long organizationId) {
+        return organizationRepository.findById(organizationId)
+                .map(org -> ResponseEntity.ok(Map.of("id", org.getId(), "name", org.getName())))
+                .orElse(ResponseEntity.notFound().build());
     }
 }

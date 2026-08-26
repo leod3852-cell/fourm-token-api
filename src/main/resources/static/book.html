@@ -46,7 +46,7 @@
 <div class="card">
     <div class="header">
         <div class="eyebrow">QueueCare</div>
-        <h1>Book Your Token</h1>
+        <h1 id="clinicName">Book Your Token</h1>
         <p>Skip the line — reserve your spot before you arrive.</p>
     </div>
 
@@ -102,7 +102,8 @@
 
 <script>
     // CHANGE THIS to your organization's ID
-    const ORGANIZATION_ID = 1;
+    const urlParams = new URLSearchParams(window.location.search);
+const ORGANIZATION_ID = parseInt(urlParams.get('org')) || 1;
     const BASE_URL = window.location.origin;
 
     let doctors = [];
@@ -121,6 +122,18 @@
       } catch (e) {
         document.getElementById('pDoctor').innerHTML = '<option>Failed to load doctors</option>';
       }
+      async function loadOrganization() {
+  try {
+    const res = await fetch(`${BASE_URL}/api/public/organization?organizationId=${ORGANIZATION_ID}`);
+    if (res.ok) {
+      const org = await res.json();
+      document.getElementById('clinicName').textContent = `Book at ${org.name}`;
+      document.title = `${org.name} — Book a Token`;
+    }
+  } catch (e) {
+    // silently keep default title if fetch fails
+  }
+}
     }
 
     function checkDoctorAvailability() {
@@ -138,9 +151,10 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      loadDoctors();
-      document.getElementById('pDoctor').addEventListener('change', checkDoctorAvailability);
-    });
+  loadOrganization();
+  loadDoctors();
+  document.getElementById('pDoctor').addEventListener('change', checkDoctorAvailability);
+});
 
     function showMsg(text, type) {
       const box = document.getElementById('msgBox');
