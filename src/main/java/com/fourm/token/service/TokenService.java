@@ -150,6 +150,18 @@ public class TokenService {
             throw new IllegalStateException("This doctor is currently unavailable for booking. Please choose another doctor or try later.");
         }
 
+        // Per-day token limit check
+        if (doctor.getMaxTokensPerDay() != null) {
+            LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+            LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
+            long todayCount = tokenRepository.countByDoctorIdAndCreatedAtBetween(doctor.getId(), startOfDay, endOfDay);
+
+            if (todayCount >= doctor.getMaxTokensPerDay()) {
+                throw new IllegalStateException("This doctor has reached today's booking limit (" +
+                        doctor.getMaxTokensPerDay() + " tokens). Please try again tomorrow or choose another doctor.");
+            }
+        }
+
         // Rule 1: prevent duplicate active token for same phone number (same organization)
         List<TokenStatus> activeStatuses = List.of(TokenStatus.WAITING, TokenStatus.CURRENT, TokenStatus.ON_HOLD);
         List<Token> existingActive = tokenRepository.findByPatientPhoneAndDoctorOrganizationIdAndStatusIn(
@@ -160,8 +172,6 @@ public class TokenService {
                     existingActive.get(0).getTokenNo() + "). Please complete that visit before booking again.");
         }
 
-        // Rule 2: synchronized block ensures no two patients get the same token number
-        // even if they book at the exact same millisecond
         return registerToken(patient, doctor);
     }
 }

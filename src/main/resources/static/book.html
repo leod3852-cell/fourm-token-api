@@ -96,7 +96,8 @@
         </div>
         <p style="font-size:14px;color:var(--slate-900);"><strong id="resultPatient"></strong></p>
         <p style="font-size:13px;color:var(--slate-500);margin-top:4px;" id="resultDoctor"></p>
-        <button class="btn" style="margin-top:20px;background:var(--mint-100);color:var(--teal-900);" onclick="location.reload()">Book Another Token</button>
+        <button class="btn" id="trackTokenBtn" style="margin-top:20px;">Track My Token</button>
+        <button class="btn" style="margin-top:10px;background:var(--mint-100);color:var(--teal-900);" onclick="location.reload()">Book Another Token</button>
     </div>
 </div>
 
@@ -206,6 +207,9 @@
         document.getElementById('resultTokenNo').textContent = data.tokenNo;
         document.getElementById('resultPatient').textContent = name;
         document.getElementById('resultDoctor').textContent = `Doctor: ${data.doctorName}`;
+        document.getElementById('trackTokenBtn').onclick = () => {
+  window.location.href = `track.html?token=${encodeURIComponent(data.tokenNo)}&phone=${encodeURIComponent(phone)}`;
+};
       } catch (e) {
         showMsg("Network error. Please check your connection and try again.", "error");
         btn.disabled = false;

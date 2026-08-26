@@ -16,4 +16,5 @@ public class Doctor {
     private Long organizationId;
     private Double consultationFee;
     private Boolean isAvailable = true;
+    private Integer maxTokensPerDay;
 }

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueueCare — Track Your Token</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+          --teal-900:#0F5257; --teal-700:#146B71; --mint-100:#E8F4F1; --paper:#FAFAF8;
+          --amber:#E8A33D; --slate-900:#22303A; --slate-500:#5C6B73; --danger:#C1462F;
+          --success:#4A7C59; --line:#DCE6E4;
+        }
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Inter',sans-serif;background:var(--paper);min-height:100vh;display:flex;justify-content:center;padding:24px 12px;}
+        .card{width:420px;max-width:100%;}
+        .header{background:linear-gradient(135deg,var(--teal-900),var(--teal-700));border-radius:20px;padding:30px 24px;color:#fff;margin-bottom:20px;}
+        .header .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.75;font-weight:600;}
+        .header h1{font-family:'Space Grotesk',sans-serif;font-size:24px;margin-top:6px;}
+        .header p{font-size:13px;opacity:.85;margin-top:6px;}
+        .field{margin-bottom:14px;}
+        .field label{font-size:12.5px;font-weight:600;color:var(--slate-500);display:block;margin-bottom:6px;}
+        .field input{width:100%;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);font-size:14.5px;color:var(--slate-900);background:#fff;}
+        .field input:focus{outline:none;border-color:var(--teal-700);}
+        .btn{width:100%;padding:15px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;background:var(--teal-900);color:#fff;margin-top:6px;}
+        .btn:disabled{opacity:.5;cursor:not-allowed;}
+        .msg{padding:12px 14px;border-radius:12px;font-size:13px;margin-bottom:14px;display:none;}
+        .msg.error{background:#FDECEA;color:var(--danger);display:block;}
+        .status-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;display:none;}
+        .status-card .my-token{background:linear-gradient(135deg,var(--teal-900),#0B3A3E);border-radius:16px;padding:20px;color:#fff;text-align:center;margin-bottom:18px;}
+        .status-card .my-token .label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.75;}
+        .status-card .my-token .num{font-size:36px;font-weight:700;margin:6px 0;}
+        .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-top:6px;}
+        .badge.waiting{background:#FCF0DD;color:#C8842A;}
+        .badge.current{background:#0F5257;color:#fff;}
+        .badge.completed{background:#E4F3E8;color:var(--success);}
+        .badge.on_hold{background:#FCF0DD;color:#C8842A;}
+        .info-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);}
+        .info-row:last-child{border-bottom:none;}
+        .info-row .lbl{font-size:13px;color:var(--slate-500);}
+        .info-row .val{font-size:14px;font-weight:700;color:var(--slate-900);}
+        .refresh-note{text-align:center;font-size:11px;color:var(--slate-500);margin-top:14px;}
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <div class="eyebrow">QueueCare</div>
+        <h1>Track Your Token</h1>
+        <p>Check your live queue position anytime.</p>
+    </div>
+
+    <div id="msgBox" class="msg"></div>
+
+    <div id="formSection">
+        <div class="field">
+            <label>Token Number</label>
+            <input id="tTokenNo" placeholder="e.g. TKN-5" />
+        </div>
+        <div class="field">
+            <label>Phone Number (used during booking)</label>
+            <input id="tPhone" placeholder="10-digit mobile number" maxlength="10" />
+        </div>
+        <button class="btn" id="trackBtn" onclick="trackToken()">Track Token</button>
+    </div>
+
+    <div id="statusCard" class="status-card">
+        <div class="my-token">
+            <div class="label">Your Token</div>
+            <div class="num" id="myTokenNo">--</div>
+            <span class="badge" id="statusBadge">—</span>
+        </div>
+        <div class="info-row">
+            <span class="lbl">Doctor</span>
+            <span class="val" id="doctorName">—</span>
+        </div>
+        <div class="info-row">
+            <span class="lbl">Currently Serving</span>
+            <span class="val" id="currentlyServing">—</span>
+        </div>
+        <div class="info-row" id="aheadRow">
+            <span class="lbl">Patients Ahead of You</span>
+            <span class="val" id="patientsAhead">—</span>
+        </div>
+        <div class="refresh-note">Auto-refreshing every 10 seconds…</div>
+    </div>
+</div>
+
+<script>
+    const BASE_URL = window.location.origin;
+    let refreshTimer = null;
+    let lastTokenNo = '';
+    let lastPhone = '';
+
+    function showMsg(text) {
+      const box = document.getElementById('msgBox');
+      box.textContent = text;
+      box.className = 'msg error';
+    }
+
+    async function trackToken() {
+      const tokenNo = document.getElementById('tTokenNo').value.trim();
+      const phone = document.getElementById('tPhone').value.trim();
+
+      if (!tokenNo || !phone) {
+        showMsg("Please enter both Token Number and Phone Number.");
+        return;
+      }
+
+      lastTokenNo = tokenNo;
+      lastPhone = phone;
+
+      const btn = document.getElementById('trackBtn');
+      btn.disabled = true;
+      btn.textContent = "Checking...";
+
+      await fetchStatus();
+
+      btn.disabled = false;
+      btn.textContent = "Track Token";
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch(`${BASE_URL}/api/public/token-status?tokenNo=${encodeURIComponent(lastTokenNo)}&phone=${encodeURIComponent(lastPhone)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMsg(data.error || "Could not find this token.");
+          document.getElementById('statusCard').style.display = 'none';
+          clearInterval(refreshTimer);
+          return;
+        }
+
+        document.getElementById('msgBox').style.display = 'none';
+        document.getElementById('formSection').style.display = 'none';
+        document.getElementById('statusCard').style.display = 'block';
+
+        document.getElementById('myTokenNo').textContent = data.tokenNo;
+        document.getElementById('doctorName').textContent = data.doctorName;
+        document.getElementById('currentlyServing').textContent = data.currentlyServing;
+
+        const badge = document.getElementById('statusBadge');
+        badge.textContent = data.status;
+        badge.className = 'badge ' + data.status.toLowerCase();
+
+        const aheadRow = document.getElementById('aheadRow');
+        if (data.status === 'WAITING') {
+          aheadRow.style.display = 'flex';
+          document.getElementById('patientsAhead').textContent = data.patientsAhead;
+        } else {
+          aheadRow.style.display = 'none';
+        }
+
+        if (data.status === 'COMPLETED') {
+          clearInterval(refreshTimer);
+        } else if (!refreshTimer) {
+          refreshTimer = setInterval(fetchStatus, 10000);
+        }
+      } catch (e) {
+        showMsg("Network error. Please try again.");
+      }
+    }
+
+    // auto-fill from URL params if coming from booking success page
+    document.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const tokenNo = params.get('token');
+      const phone = params.get('phone');
+      if (tokenNo && phone) {
+        document.getElementById('tTokenNo').value = tokenNo;
+        document.getElementById('tPhone').value = phone;
+        trackToken();
+      }
+    });
+</script>
+</body>
+</html>

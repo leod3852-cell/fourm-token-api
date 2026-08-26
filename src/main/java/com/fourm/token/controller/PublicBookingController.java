@@ -14,7 +14,8 @@ import com.fourm.token.repository.OrganizationRepository;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import com.fourm.token.repository.TokenRepository;
+import com.fourm.token.enums.TokenStatus;
 @RestController
 @RequestMapping("/api/public")
 public class PublicBookingController {
@@ -76,5 +77,40 @@ public class PublicBookingController {
         return organizationRepository.findById(organizationId)
                 .map(org -> ResponseEntity.ok(Map.of("id", org.getId(), "name", org.getName())))
                 .orElse(ResponseEntity.notFound().build());
+    }
+    @Autowired
+    private TokenRepository tokenRepository;
+
+    // check token status - public, no login (search by token number + phone for security)
+    @GetMapping("/token-status")
+    public ResponseEntity<?> getTokenStatus(@RequestParam String tokenNo, @RequestParam String phone) {
+        Token token = tokenRepository.findAll().stream()
+                .filter(t -> t.getTokenNo().equals(tokenNo) && t.getPatient().getPhone().equals(phone))
+                .findFirst()
+                .orElse(null);
+
+        if (token == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Token not found. Check your token number and phone."));
+        }
+
+        Doctor doctor = token.getDoctor();
+
+        // current token being served for this doctor
+        Token currentToken = tokenRepository.findFirstByDoctorIdAndStatus(doctor.getId(), TokenStatus.CURRENT)
+                .orElse(null);
+
+        // count patients ahead in waiting queue (created before this token, still waiting)
+        long patientsAhead = tokenRepository.findByDoctorIdAndStatus(doctor.getId(), TokenStatus.WAITING).stream()
+                .filter(t -> t.getCreatedAt().isBefore(token.getCreatedAt()))
+                .count();
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("tokenNo", token.getTokenNo());
+        response.put("status", token.getStatus());
+        response.put("doctorName", doctor.getName());
+        response.put("currentlyServing", currentToken != null ? currentToken.getTokenNo() : "—");
+        response.put("patientsAhead", token.getStatus() == TokenStatus.WAITING ? patientsAhead : 0);
+
+        return ResponseEntity.ok(response);
     }
 }

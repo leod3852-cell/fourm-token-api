@@ -119,4 +119,14 @@ public class AdminController {
         doctorRepository.save(doctor);
         return ResponseEntity.ok(doctor);
     }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/doctors/{doctorId}/token-limit")
+    public ResponseEntity<?> setTokenLimit(@PathVariable Long doctorId, @RequestBody Map<String, Integer> body) {
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new RuntimeException("Doctor not found"));
+        doctor.setMaxTokensPerDay(body.get("maxTokensPerDay"));
+        doctorRepository.save(doctor);
+        return ResponseEntity.ok(doctor);
+    }
 }
