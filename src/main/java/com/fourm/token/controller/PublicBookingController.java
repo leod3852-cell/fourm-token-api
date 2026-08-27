@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import com.fourm.token.repository.TokenRepository;
 import com.fourm.token.enums.TokenStatus;
+import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/public")
 public class PublicBookingController {
@@ -112,5 +113,22 @@ public class PublicBookingController {
         response.put("patientsAhead", token.getStatus() == TokenStatus.WAITING ? patientsAhead : 0);
 
         return ResponseEntity.ok(response);
+    }
+
+    // find active token(s) by phone alone - public, no login
+    @GetMapping("/my-tokens")
+    public ResponseEntity<?> getMyTokens(@RequestParam String phone, @RequestParam Long organizationId) {
+        List<TokenStatus> activeStatuses = List.of(TokenStatus.WAITING, TokenStatus.CURRENT, TokenStatus.ON_HOLD);
+        List<Token> myTokens = tokenRepository.findByPatientPhoneAndDoctorOrganizationIdAndStatusIn(phone, organizationId, activeStatuses);
+
+        List<Map<String, Object>> result = myTokens.stream().map(t -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("tokenNo", t.getTokenNo());
+            map.put("status", t.getStatus());
+            map.put("doctorName", t.getDoctor().getName());
+            return map;
+        }).collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
     }
 }
