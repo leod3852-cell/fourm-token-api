@@ -81,6 +81,7 @@ public class ReportController {
         long waiting = allTokens.stream()
                 .filter(t -> t.getStatus() == TokenStatus.WAITING || t.getStatus() == TokenStatus.CURRENT)
                 .count();
+        long cancelled = allTokens.stream().filter(t -> t.getStatus() == TokenStatus.CANCELLED).count();
 
         List<Token> finalAllTokens = allTokens;
         List<Map<String, Object>> byDoctor = doctors.stream().map(doc -> {
@@ -101,6 +102,7 @@ public class ReportController {
         response.put("totalTokens", total);
         response.put("completed", completed);
         response.put("waiting", waiting);
+        response.put("cancelled", cancelled);
         response.put("byDoctor", byDoctor);
 
         return ResponseEntity.ok(response);
