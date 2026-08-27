@@ -294,7 +294,7 @@
         document.getElementById('msgBox').style.display = 'none';
         document.getElementById('formSection').classList.add('hidden');
         document.getElementById('resultSection').classList.remove('hidden');
-        document.getElementById('resultTokenNo').textContent = data.tokenNo;
+        animateTokenNumber(data.tokenNo);
         document.getElementById('resultPatient').textContent = name;
         document.getElementById('resultDoctor').textContent = `Doctor: ${data.doctorName}`;
 
@@ -307,6 +307,31 @@
         btn.textContent = "Book Token";
       }
     }
+
+    function animateTokenNumber(tokenNo) {
+  const match = tokenNo.match(/\d+/);
+  const el = document.getElementById('resultTokenNo');
+  if (!match) {
+    el.textContent = tokenNo;
+    return;
+  }
+  const prefix = tokenNo.substring(0, match.index);
+  const target = parseInt(match[0]);
+  let current = 0;
+  const duration = 900;
+  const steps = 30;
+  const increment = target / steps;
+  const stepTime = duration / steps;
+
+  const interval = setInterval(() => {
+    current += increment;
+    if (current >= target) {
+      current = target;
+      clearInterval(interval);
+    }
+    el.textContent = prefix + Math.round(current);
+  }, stepTime);
+}
 
     function resetBookingForm() {
       document.getElementById('pName').value = '';
