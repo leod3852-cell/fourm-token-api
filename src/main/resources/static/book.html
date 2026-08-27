@@ -19,6 +19,11 @@
         .header .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.75;font-weight:600;}
         .header h1{font-family:'Space Grotesk',sans-serif;font-size:24px;margin-top:6px;}
         .header p{font-size:13px;opacity:.85;margin-top:6px;}
+
+        .tabs{display:flex;background:var(--mint-100);border-radius:12px;padding:4px;margin-bottom:18px;}
+        .tabs button{flex:1;padding:10px;border:none;background:transparent;border-radius:9px;font-weight:700;font-size:13px;color:var(--teal-900);cursor:pointer;}
+        .tabs button.active{background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.08);}
+
         .field{margin-bottom:14px;}
         .field label{font-size:12.5px;font-weight:600;color:var(--slate-500);display:block;margin-bottom:6px;}
         .field input, .field select, .field textarea{
@@ -29,85 +34,183 @@
         .row{display:flex;gap:10px;}
         .row .field{flex:1;}
         .btn{width:100%;padding:15px;border-radius:14px;border:none;font-size:15px;font-weight:700;cursor:pointer;background:var(--teal-900);color:#fff;margin-top:6px;}
+        .btn.secondary{background:var(--mint-100);color:var(--teal-900);}
         .btn:disabled{opacity:.5;cursor:not-allowed;}
         .msg{padding:12px 14px;border-radius:12px;font-size:13px;margin-bottom:14px;display:none;}
         .msg.error{background:#FDECEA;color:var(--danger);display:block;}
         .msg.success{background:var(--mint-100);color:var(--teal-900);display:block;}
-        .result{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;text-align:center;display:none;}
+
+        .result{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;text-align:center;}
         .result .token-box{background:linear-gradient(135deg,var(--teal-900),#0B3A3E);border-radius:16px;padding:24px;color:#fff;margin-bottom:16px;}
         .result .token-box .label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.75;}
         .result .token-box .num{font-size:44px;font-weight:700;margin:8px 0;}
         .doctor-unavail{font-size:11px;color:var(--danger);margin-top:4px;}
-        .loading{text-align:center;padding:20px;color:var(--slate-500);font-size:13px;}
+
+        .status-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px;}
+        .status-card .my-token{background:linear-gradient(135deg,var(--teal-900),#0B3A3E);border-radius:16px;padding:20px;color:#fff;text-align:center;margin-bottom:18px;}
+        .status-card .my-token .label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.75;}
+        .status-card .my-token .num{font-size:36px;font-weight:700;margin:6px 0;}
+        .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-top:6px;}
+        .badge.waiting{background:#FCF0DD;color:#C8842A;}
+        .badge.current{background:#0F5257;color:#fff;}
+        .badge.completed{background:#E4F3E8;color:var(--success);}
+        .badge.on_hold{background:#FCF0DD;color:#C8842A;}
+        .badge.cancelled{background:#FDECEA;color:var(--danger);}
+        .info-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--line);}
+        .info-row:last-child{border-bottom:none;}
+        .info-row .lbl{font-size:13px;color:var(--slate-500);}
+        .info-row .val{font-size:14px;font-weight:700;color:var(--slate-900);}
+        .refresh-note{text-align:center;font-size:11px;color:var(--slate-500);margin-top:14px;}
+
+        .token-item{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:10px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
+        .hidden{display:none !important;}
     </style>
 </head>
 <body>
 
 <div class="card">
     <div class="header">
-        <div class="eyebrow">QueueCare</div>
+        <div class="eyebrow">QUEUECARE</div>
         <h1 id="clinicName">Book Your Token</h1>
         <p>Skip the line — reserve your spot before you arrive.</p>
     </div>
 
+    <div class="tabs">
+        <button id="tabBookBtn" class="active" onclick="switchTab('book')">Book Token</button>
+        <button id="tabTrackBtn" onclick="switchTab('track')">Track Token</button>
+    </div>
+
     <div id="msgBox" class="msg"></div>
 
-    <div id="formSection">
-        <div class="field">
-            <label>Full Name</label>
-            <input id="pName" placeholder="e.g. Karthik Raja" />
-        </div>
-        <div class="row">
+    <!-- ===================== BOOK TAB ===================== -->
+    <div id="bookTab">
+
+        <div id="formSection">
             <div class="field">
-                <label>Age</label>
-                <input id="pAge" type="number" placeholder="e.g. 34" />
+                <label>Full Name</label>
+                <input id="pName" placeholder="e.g. Karthik Raja" />
+            </div>
+            <div class="row">
+                <div class="field">
+                    <label>Age</label>
+                    <input id="pAge" type="number" placeholder="e.g. 34" />
+                </div>
+                <div class="field">
+                    <label>Gender</label>
+                    <select id="pGender">
+                        <option>Male</option><option>Female</option><option>Other</option>
+                    </select>
+                </div>
             </div>
             <div class="field">
-                <label>Gender</label>
-                <select id="pGender">
-                    <option>Male</option><option>Female</option><option>Other</option>
-                </select>
+                <label>Phone Number</label>
+                <input id="pPhone" placeholder="10-digit mobile number" maxlength="10" />
             </div>
+            <div class="field">
+                <label>Email (optional, for follow-up reminders)</label>
+                <input id="pEmail" type="email" placeholder="you@example.com" />
+            </div>
+            <div class="field">
+                <label>Select Doctor</label>
+                <select id="pDoctor"><option>Loading doctors...</option></select>
+                <div id="doctorNote" class="doctor-unavail"></div>
+            </div>
+            <div class="field">
+                <label>Reason for Visit</label>
+                <textarea id="pReason" rows="2" placeholder="e.g. Fever, follow-up"></textarea>
+            </div>
+            <button class="btn" id="bookBtn" onclick="bookToken()">Book Token</button>
         </div>
-        <div class="field">
-            <label>Phone Number</label>
-            <input id="pPhone" placeholder="10-digit mobile number" maxlength="10" />
+
+        <div id="resultSection" class="result hidden">
+            <div class="token-box">
+                <div class="label">Your Token Number</div>
+                <div class="num" id="resultTokenNo">--</div>
+            </div>
+            <p style="font-size:14px;color:var(--slate-900);"><strong id="resultPatient"></strong></p>
+            <p style="font-size:13px;color:var(--slate-500);margin-top:4px;" id="resultDoctor"></p>
+            <button class="btn" onclick="goToTrackFromResult()" style="margin-top:20px;">Track My Token</button>
+            <button class="btn secondary" style="margin-top:10px;" onclick="resetBookingForm()">Book Another Token</button>
         </div>
-        <div class="field">
-            <label>Email (optional, for follow-up reminders)</label>
-            <input id="pEmail" type="email" placeholder="you@example.com" />
-        </div>
-        <div class="field">
-            <label>Select Doctor</label>
-            <select id="pDoctor"><option>Loading doctors...</option></select>
-            <div id="doctorNote" class="doctor-unavail"></div>
-        </div>
-        <div class="field">
-            <label>Reason for Visit</label>
-            <textarea id="pReason" rows="2" placeholder="e.g. Fever, follow-up"></textarea>
-        </div>
-        <button class="btn" id="bookBtn" onclick="bookToken()">Book Token</button>
     </div>
 
-    <div id="resultSection" class="result">
-        <div class="token-box">
-            <div class="label">Your Token Number</div>
-            <div class="num" id="resultTokenNo">--</div>
+    <!-- ===================== TRACK TAB ===================== -->
+    <div id="trackTab" class="hidden">
+
+        <div id="trackFormSection">
+            <div class="field">
+                <label>Phone Number (used during booking)</label>
+                <input id="tPhone" placeholder="10-digit mobile number" maxlength="10" />
+            </div>
+            <button class="btn secondary" onclick="findByPhone()">🔍 Find My Token(s)</button>
+
+            <div style="text-align:center;font-size:12px;color:var(--slate-500);margin:16px 0;">— OR track using exact token number —</div>
+
+            <div class="field">
+                <label>Token Number</label>
+                <input id="tTokenNo" placeholder="e.g. TKN-5" />
+            </div>
+            <button class="btn" id="trackBtn" onclick="trackToken()">Track Token</button>
+
+            <div id="myTokensList" style="margin-top:6px;"></div>
         </div>
-        <p style="font-size:14px;color:var(--slate-900);"><strong id="resultPatient"></strong></p>
-        <p style="font-size:13px;color:var(--slate-500);margin-top:4px;" id="resultDoctor"></p>
-        <button class="btn" id="trackTokenBtn" style="margin-top:20px;">Track My Token</button>
-        <button class="btn" style="margin-top:10px;background:var(--mint-100);color:var(--teal-900);" onclick="location.reload()">Book Another Token</button>
+
+        <div id="statusCard" class="status-card hidden">
+            <div class="my-token">
+                <div class="label">Your Token</div>
+                <div class="num" id="myTokenNo">--</div>
+                <span class="badge" id="statusBadge">—</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Doctor</span>
+                <span class="val" id="doctorName">—</span>
+            </div>
+            <div class="info-row">
+                <span class="lbl">Currently Serving</span>
+                <span class="val" id="currentlyServing">—</span>
+            </div>
+            <div class="info-row" id="aheadRow">
+                <span class="lbl">Patients Ahead of You</span>
+                <span class="val" id="patientsAhead">—</span>
+            </div>
+            <div class="refresh-note">Auto-refreshing every 10 seconds…</div>
+            <button class="btn secondary" style="margin-top:16px;" onclick="backToTrackSearch()">Search Another Token</button>
+        </div>
     </div>
+
 </div>
 
 <script>
+    const BASE_URL = window.location.origin;
     const urlParams = new URLSearchParams(window.location.search);
     const ORGANIZATION_ID = parseInt(urlParams.get('org')) || 1;
-    const BASE_URL = window.location.origin;
 
     let doctors = [];
+    let refreshTimer = null;
+    let lastTokenNo = '';
+    let lastPhone = '';
 
+    // ---------- TAB SWITCHING ----------
+    function switchTab(tab) {
+      document.getElementById('msgBox').style.display = 'none';
+      document.getElementById('tabBookBtn').classList.toggle('active', tab === 'book');
+      document.getElementById('tabTrackBtn').classList.toggle('active', tab === 'track');
+      document.getElementById('bookTab').classList.toggle('hidden', tab !== 'book');
+      document.getElementById('trackTab').classList.toggle('hidden', tab !== 'track');
+      if (tab !== 'track' && refreshTimer) {
+        clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+    }
+
+    function showMsg(text, type = 'error') {
+      const box = document.getElementById('msgBox');
+      box.textContent = text;
+      box.className = `msg ${type}`;
+      box.style.display = 'block';
+    }
+
+    // ---------- LOAD ORG + DOCTORS ----------
     async function loadOrganization() {
       try {
         const res = await fetch(`${BASE_URL}/api/public/organization?organizationId=${ORGANIZATION_ID}`);
@@ -116,9 +219,7 @@
           document.getElementById('clinicName').textContent = `Book at ${org.name}`;
           document.title = `${org.name} — Book a Token`;
         }
-      } catch (e) {
-        // silently keep default title if fetch fails
-      }
+      } catch (e) {}
     }
 
     async function loadDoctors() {
@@ -151,18 +252,7 @@
       }
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      loadOrganization();
-      loadDoctors();
-      document.getElementById('pDoctor').addEventListener('change', checkDoctorAvailability);
-    });
-
-    function showMsg(text, type) {
-      const box = document.getElementById('msgBox');
-      box.textContent = text;
-      box.className = `msg ${type}`;
-    }
-
+    // ---------- BOOKING ----------
     async function bookToken() {
       const name = document.getElementById('pName').value.trim();
       const age = document.getElementById('pAge').value.trim();
@@ -173,7 +263,7 @@
       const reason = document.getElementById('pReason').value.trim();
 
       if (!name || !age || !phone || phone.length !== 10 || !doctorId) {
-        showMsg("Please fill Name, Age, 10-digit Phone, and select a Doctor.", "error");
+        showMsg("Please fill Name, Age, 10-digit Phone, and select a Doctor.");
         return;
       }
 
@@ -195,28 +285,174 @@
         const data = await res.json();
 
         if (!res.ok) {
-          showMsg(data.error || "Booking failed. Please try again.", "error");
+          showMsg(data.error || "Booking failed. Please try again.");
           btn.disabled = false;
           btn.textContent = "Book Token";
           return;
         }
 
-        document.getElementById('formSection').style.display = 'none';
         document.getElementById('msgBox').style.display = 'none';
-        document.getElementById('resultSection').style.display = 'block';
+        document.getElementById('formSection').classList.add('hidden');
+        document.getElementById('resultSection').classList.remove('hidden');
         document.getElementById('resultTokenNo').textContent = data.tokenNo;
         document.getElementById('resultPatient').textContent = name;
         document.getElementById('resultDoctor').textContent = `Doctor: ${data.doctorName}`;
-        document.getElementById('trackTokenBtn').onclick = () => {
-  window.location.href = `track.html?token=${encodeURIComponent(data.tokenNo)}&phone=${encodeURIComponent(phone)}`;
-};
+
+        // remember for "Track My Token" button
+        window._lastBookedToken = data.tokenNo;
+        window._lastBookedPhone = phone;
       } catch (e) {
-        showMsg("Network error. Please check your connection and try again.", "error");
+        showMsg("Network error. Please check your connection and try again.");
         btn.disabled = false;
         btn.textContent = "Book Token";
       }
     }
-</script>
 
+    function resetBookingForm() {
+      document.getElementById('pName').value = '';
+      document.getElementById('pAge').value = '';
+      document.getElementById('pPhone').value = '';
+      document.getElementById('pEmail').value = '';
+      document.getElementById('pReason').value = '';
+      document.getElementById('formSection').classList.remove('hidden');
+      document.getElementById('resultSection').classList.add('hidden');
+      const btn = document.getElementById('bookBtn');
+      btn.disabled = false;
+      btn.textContent = "Book Token";
+      loadDoctors();
+    }
+
+    function goToTrackFromResult() {
+      lastTokenNo = window._lastBookedToken;
+      lastPhone = window._lastBookedPhone;
+      document.getElementById('tTokenNo').value = lastTokenNo;
+      document.getElementById('tPhone').value = lastPhone;
+      switchTab('track');
+      fetchStatus();
+    }
+
+    // ---------- TRACKING ----------
+    async function findByPhone() {
+      const phone = document.getElementById('tPhone').value.trim();
+      if (!phone || phone.length !== 10) {
+        showMsg("Please enter a valid 10-digit phone number.");
+        return;
+      }
+
+      try {
+        const res = await fetch(`${BASE_URL}/api/public/my-tokens?phone=${encodeURIComponent(phone)}&organizationId=${ORGANIZATION_ID}`);
+        const data = await res.json();
+
+        const listDiv = document.getElementById('myTokensList');
+
+        if (!data.length) {
+          showMsg("No active token found for this phone number.");
+          listDiv.innerHTML = '';
+          return;
+        }
+
+        document.getElementById('msgBox').style.display = 'none';
+        listDiv.innerHTML = data.map(t => `
+          <div class="token-item" onclick="quickTrack('${t.tokenNo}', '${phone}')">
+            <div>
+              <div style="font-weight:700;color:var(--teal-900);">${t.tokenNo}</div>
+              <div style="font-size:12px;color:var(--slate-500);">${t.doctorName}</div>
+            </div>
+            <span class="badge ${t.status.toLowerCase()}">${t.status}</span>
+          </div>
+        `).join('');
+      } catch (e) {
+        showMsg("Network error. Please try again.");
+      }
+    }
+
+    function quickTrack(tokenNo, phone) {
+      document.getElementById('tTokenNo').value = tokenNo;
+      document.getElementById('tPhone').value = phone;
+      trackToken();
+    }
+
+    async function trackToken() {
+      const tokenNo = document.getElementById('tTokenNo').value.trim();
+      const phone = document.getElementById('tPhone').value.trim();
+
+      if (!tokenNo || !phone) {
+        showMsg("Please enter both Token Number and Phone Number.");
+        return;
+      }
+
+      lastTokenNo = tokenNo;
+      lastPhone = phone;
+
+      const btn = document.getElementById('trackBtn');
+      btn.disabled = true;
+      btn.textContent = "Checking...";
+
+      await fetchStatus();
+
+      btn.disabled = false;
+      btn.textContent = "Track Token";
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch(`${BASE_URL}/api/public/token-status?tokenNo=${encodeURIComponent(lastTokenNo)}&phone=${encodeURIComponent(lastPhone)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          showMsg(data.error || "Could not find this token.");
+          document.getElementById('statusCard').classList.add('hidden');
+          document.getElementById('trackFormSection').classList.remove('hidden');
+          clearInterval(refreshTimer);
+          refreshTimer = null;
+          return;
+        }
+
+        document.getElementById('msgBox').style.display = 'none';
+        document.getElementById('trackFormSection').classList.add('hidden');
+        document.getElementById('statusCard').classList.remove('hidden');
+
+        document.getElementById('myTokenNo').textContent = data.tokenNo;
+        document.getElementById('doctorName').textContent = data.doctorName;
+        document.getElementById('currentlyServing').textContent = data.currentlyServing;
+
+        const badge = document.getElementById('statusBadge');
+        badge.textContent = data.status;
+        badge.className = 'badge ' + data.status.toLowerCase();
+
+        const aheadRow = document.getElementById('aheadRow');
+        if (data.status === 'WAITING') {
+          aheadRow.style.display = 'flex';
+          document.getElementById('patientsAhead').textContent = data.patientsAhead;
+        } else {
+          aheadRow.style.display = 'none';
+        }
+
+        if (data.status === 'COMPLETED' || data.status === 'CANCELLED') {
+          clearInterval(refreshTimer);
+          refreshTimer = null;
+        } else if (!refreshTimer) {
+          refreshTimer = setInterval(fetchStatus, 10000);
+        }
+      } catch (e) {
+        showMsg("Network error. Please try again.");
+      }
+    }
+
+    function backToTrackSearch() {
+      clearInterval(refreshTimer);
+      refreshTimer = null;
+      document.getElementById('statusCard').classList.add('hidden');
+      document.getElementById('trackFormSection').classList.remove('hidden');
+      document.getElementById('myTokensList').innerHTML = '';
+    }
+
+    // ---------- INIT ----------
+    document.addEventListener('DOMContentLoaded', () => {
+      loadOrganization();
+      loadDoctors();
+      document.getElementById('pDoctor').addEventListener('change', checkDoctorAvailability);
+    });
+</script>
 </body>
 </html>
