@@ -43,6 +43,9 @@ public class PublicBookingController {
             Doctor doctor = doctorRepository.findById(request.getDoctorId())
                     .orElseThrow(() -> new RuntimeException("Doctor not found"));
 
+            // Validate FIRST - before touching the database with a new Patient row
+            tokenService.validateBookingAllowed(doctor, request.getPhone());
+
             Patient patient = new Patient();
             patient.setName(request.getName());
             patient.setAge(request.getAge());
@@ -54,7 +57,7 @@ public class PublicBookingController {
             patient.setOrganizationId(request.getOrganizationId());
             patient = patientRepository.save(patient);
 
-            Token token = tokenService.bookTokenPublicly(patient, doctor);
+            Token token = tokenService.registerToken(patient, doctor);
 
             Map<String, Object> response = new HashMap<>();
             response.put("tokenNo", token.getTokenNo());

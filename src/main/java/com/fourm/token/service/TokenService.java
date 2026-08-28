@@ -23,7 +23,7 @@ public class TokenService {
     private EmailService emailService;
 
     // Reception/Admin registers a patient -> creates a new token
-    public Token registerToken(Patient patient, Doctor doctor) {
+    public synchronized Token registerToken(Patient patient, Doctor doctor) {
         LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
         LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
 
@@ -142,8 +142,8 @@ public class TokenService {
     public List<Token> getPatientHistory(String phone) {
         return tokenRepository.findByPatient_PhoneOrderByCreatedAtDesc(phone);
     }
-    // PUBLIC BOOKING - thread-safe, with all validation rules
-    public synchronized Token bookTokenPublicly(Patient patient, Doctor doctor) {
+    // call this BEFORE saving the patient record
+    public synchronized void validateBookingAllowed(Doctor doctor, String phone) {
 
         // Rule 4: doctor must be available
         if (doctor.getIsAvailable() != null && !doctor.getIsAvailable()) {
@@ -165,13 +165,11 @@ public class TokenService {
         // Rule 1: prevent duplicate active token for same phone number (same organization)
         List<TokenStatus> activeStatuses = List.of(TokenStatus.WAITING, TokenStatus.CURRENT, TokenStatus.ON_HOLD);
         List<Token> existingActive = tokenRepository.findByPatientPhoneAndDoctorOrganizationIdAndStatusIn(
-                patient.getPhone(), doctor.getOrganizationId(), activeStatuses);
+                phone, doctor.getOrganizationId(), activeStatuses);
 
         if (!existingActive.isEmpty()) {
             throw new IllegalStateException("You already have an active token (" +
                     existingActive.get(0).getTokenNo() + "). Please complete that visit before booking again.");
         }
-
-        return registerToken(patient, doctor);
     }
 }

@@ -148,7 +148,7 @@
 
             <div class="field">
                 <label>Token Number</label>
-                <input id="tTokenNo" placeholder="e.g. TKN-5" />
+                <input id="tTokenNo" placeholder="e.g. 5" />
             </div>
             <button class="btn" id="trackBtn" onclick="trackToken()">Track Token</button>
 
@@ -398,16 +398,21 @@
     }
 
     async function trackToken() {
-      const tokenNo = document.getElementById('tTokenNo').value.trim();
-      const phone = document.getElementById('tPhone').value.trim();
+    let tokenNo = document.getElementById('tTokenNo').value.trim();
+    const phone = document.getElementById('tPhone').value.trim();
 
-      if (!tokenNo || !phone) {
-        showMsg("Please enter both Token Number and Phone Number.");
-        return;
-      }
+    if (!tokenNo || !phone) {
+      showMsg("Please enter both Token Number and Phone Number.");
+      return;
+    }
 
-      lastTokenNo = tokenNo;
-      lastPhone = phone;
+    // if user typed just a number (e.g. "5"), auto-format to "TOKEN-5"
+    if (/^\d+$/.test(tokenNo)) {
+      tokenNo = `TOKEN-${tokenNo}`;
+    }
+
+    lastTokenNo = tokenNo;
+    lastPhone = phone;
 
       const btn = document.getElementById('trackBtn');
       btn.disabled = true;
