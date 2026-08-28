@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import com.fourm.token.dto.PatientUpdateRequest;
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
@@ -128,5 +128,20 @@ public class AdminController {
         doctor.setMaxTokensPerDay(body.get("maxTokensPerDay"));
         doctorRepository.save(doctor);
         return ResponseEntity.ok(doctor);
+    }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/patients/{patientId}")
+    public ResponseEntity<?> updatePatient(@PathVariable Long patientId, @RequestBody PatientUpdateRequest request) {
+        Patient patient = patientRepository.findById(patientId)
+                .orElseThrow(() -> new RuntimeException("Patient not found"));
+
+        if (request.getBp() != null) patient.setBp(request.getBp());
+        if (request.getWeight() != null) patient.setWeight(request.getWeight());
+        if (request.getReasonForVisit() != null) patient.setReasonForVisit(request.getReasonForVisit());
+        if (request.getEmail() != null) patient.setEmail(request.getEmail());
+        if (request.getIsEmergency() != null) patient.setIsEmergency(request.getIsEmergency());
+
+        patientRepository.save(patient);
+        return ResponseEntity.ok(patient);
     }
 }
