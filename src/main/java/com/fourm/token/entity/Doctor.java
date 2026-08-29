@@ -17,4 +17,6 @@ public class Doctor {
     private Double consultationFee;
     private Boolean isAvailable = true;
     private Integer maxTokensPerDay;
+    private String bookingStartTime; // e.g. "08:30"
+    private String bookingEndTime;   // e.g. "10:00"
 }

@@ -150,6 +150,19 @@ public class TokenService {
             throw new IllegalStateException("This doctor is currently unavailable for booking. Please choose another doctor or try later.");
         }
 
+        // Booking time window check
+        if (doctor.getBookingStartTime() != null && doctor.getBookingEndTime() != null) {
+            java.time.LocalTime now = java.time.LocalTime.now();
+            java.time.LocalTime start = java.time.LocalTime.parse(doctor.getBookingStartTime());
+            java.time.LocalTime end = java.time.LocalTime.parse(doctor.getBookingEndTime());
+
+            if (now.isBefore(start) || now.isAfter(end)) {
+                throw new IllegalStateException("Online booking for this doctor is open only between " +
+                        doctor.getBookingStartTime() + " and " + doctor.getBookingEndTime() +
+                        ". Please try again during that time, or visit the clinic directly.");
+            }
+        }
+
         // Per-day token limit check
         if (doctor.getMaxTokensPerDay() != null) {
             LocalDateTime startOfDay = LocalDate.now().atStartOfDay();

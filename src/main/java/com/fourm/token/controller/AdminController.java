@@ -144,4 +144,14 @@ public class AdminController {
         patientRepository.save(patient);
         return ResponseEntity.ok(patient);
     }
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/doctors/{doctorId}/booking-window")
+    public ResponseEntity<?> setBookingWindow(@PathVariable Long doctorId, @RequestBody Map<String, String> body) {
+        Doctor doctor = doctorRepository.findById(doctorId)
+                .orElseThrow(() -> new RuntimeException("Doctor not found"));
+        doctor.setBookingStartTime(body.get("bookingStartTime"));
+        doctor.setBookingEndTime(body.get("bookingEndTime"));
+        doctorRepository.save(doctor);
+        return ResponseEntity.ok(doctor);
+    }
 }

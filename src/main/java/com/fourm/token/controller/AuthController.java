@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.Map;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -31,9 +31,8 @@ public class AuthController {
                     new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
             );
         } catch (Exception e) {
-            return ResponseEntity.status(401).body("Invalid username or password");
+            return ResponseEntity.status(401).body(Map.of("message", "Invalid username or password. Please try again."));
         }
-
         User user = userRepository.findByUsername(request.getUsername()).orElseThrow();
         String token = jwtUtil.generateToken(user.getUsername(), user.getRole().name(), user.getOrganizationId());
 
