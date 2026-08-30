@@ -24,8 +24,10 @@ public class TokenService {
 
     // Reception/Admin registers a patient -> creates a new token
     public synchronized Token registerToken(Patient patient, Doctor doctor) {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
+        java.time.ZoneId istZone = java.time.ZoneId.of("Asia/Kolkata");
+        LocalDate todayIST = java.time.LocalDate.now(istZone);
+        LocalDateTime startOfDay = todayIST.atStartOfDay();
+        LocalDateTime endOfDay = todayIST.atTime(23, 59, 59);
 
         long todayCount = tokenRepository.countByDoctorIdAndCreatedAtBetween(doctor.getId(), startOfDay, endOfDay);
         int nextTokenNumber = (int) todayCount + 1;
@@ -35,7 +37,7 @@ public class TokenService {
         token.setPatient(patient);
         token.setDoctor(doctor);
         token.setStatus(TokenStatus.WAITING);
-        token.setCreatedAt(LocalDateTime.now());
+        token.setCreatedAt(LocalDateTime.now(java.time.ZoneId.of("Asia/Kolkata")));
         return tokenRepository.save(token);
     }
     // ONLY ADMIN calls this - picks oldest waiting patient for a doctor
@@ -150,23 +152,26 @@ public class TokenService {
             throw new IllegalStateException("This doctor is currently unavailable for booking. Please choose another doctor or try later.");
         }
 
-        // Booking time window check
+        // Booking time window check (always evaluated in IST, regardless of server timezone)
         if (doctor.getBookingStartTime() != null && doctor.getBookingEndTime() != null) {
-            java.time.LocalTime now = java.time.LocalTime.now();
+            java.time.ZoneId istZone = java.time.ZoneId.of("Asia/Kolkata");
+            java.time.LocalTime now = java.time.LocalDateTime.now(istZone).toLocalTime();
             java.time.LocalTime start = java.time.LocalTime.parse(doctor.getBookingStartTime());
             java.time.LocalTime end = java.time.LocalTime.parse(doctor.getBookingEndTime());
 
             if (now.isBefore(start) || now.isAfter(end)) {
                 throw new IllegalStateException("Online booking for this doctor is open only between " +
                         doctor.getBookingStartTime() + " and " + doctor.getBookingEndTime() +
-                        ". Please try again during that time, or visit the clinic directly.");
+                        " IST. Please try again during that time, or visit the clinic directly.");
             }
         }
 
-        // Per-day token limit check
+        // Per-day token limit check (always evaluated in IST calendar day)
         if (doctor.getMaxTokensPerDay() != null) {
-            LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-            LocalDateTime endOfDay = LocalDate.now().atTime(23, 59, 59);
+            java.time.ZoneId istZone = java.time.ZoneId.of("Asia/Kolkata");
+            LocalDate todayIST = java.time.LocalDate.now(istZone);
+            LocalDateTime startOfDay = todayIST.atStartOfDay();
+            LocalDateTime endOfDay = todayIST.atTime(23, 59, 59);
             long todayCount = tokenRepository.countByDoctorIdAndCreatedAtBetween(doctor.getId(), startOfDay, endOfDay);
 
             if (todayCount >= doctor.getMaxTokensPerDay()) {
