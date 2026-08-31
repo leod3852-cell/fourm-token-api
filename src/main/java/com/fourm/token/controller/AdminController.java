@@ -4,6 +4,8 @@ import com.fourm.token.dto.TokenRegisterRequest;
 import com.fourm.token.entity.*;
 import com.fourm.token.repository.DoctorRepository;
 import com.fourm.token.repository.PatientRepository;
+import com.fourm.token.repository.TokenRepository;
+import com.fourm.token.enums.TokenStatus;
 import com.fourm.token.service.PermissionService;
 import com.fourm.token.service.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,10 +21,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import com.fourm.token.dto.PatientUpdateRequest;
+import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
-
+    @Autowired
+    private TokenRepository tokenRepository;
     @Autowired
     private TokenService tokenService;
 
@@ -37,7 +41,7 @@ public class AdminController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/tokens")
-    public ResponseEntity<?> registerToken(@RequestBody TokenRegisterRequest request, HttpServletRequest httpRequest) {
+    public ResponseEntity<?> registerToken(@Valid @RequestBody TokenRegisterRequest request, HttpServletRequest httpRequest) {
         Long organizationId = (Long) httpRequest.getAttribute("organizationId");
 
         Doctor doctor = doctorRepository.findById(request.getDoctorId())
@@ -134,6 +138,13 @@ public class AdminController {
     public ResponseEntity<?> updatePatient(@PathVariable Long patientId, @RequestBody PatientUpdateRequest request) {
         Patient patient = patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
+
+        boolean hasWaitingToken = tokenRepository.findAll().stream()
+                .anyMatch(t -> t.getPatient().getId().equals(patientId) && t.getStatus() == TokenStatus.WAITING);
+
+        if (!hasWaitingToken) {
+            throw new IllegalStateException("This patient's details can only be edited while their token is still waiting.");
+        }
 
         if (request.getBp() != null) patient.setBp(request.getBp());
         if (request.getWeight() != null) patient.setWeight(request.getWeight());
